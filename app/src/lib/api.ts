@@ -1,7 +1,7 @@
-import { supabase } from './supabase'
 import type { ProductItem } from '../types'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 /**
  * 调用 Edge Function 提交混元视频生成任务
@@ -11,14 +11,11 @@ export async function submitVideoJob(
   item: ProductItem,
   prompt: string
 ): Promise<{ jobId: string }> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Not authenticated')
-
   const res = await fetch(`${SUPABASE_URL}/functions/v1/generate-video`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify({
       productId: item.id,
@@ -36,7 +33,6 @@ export async function submitVideoJob(
 
 /**
  * 轮询 Edge Function 查询任务状态
- * status: 'processing' | 'completed' | 'error'
  */
 export async function pollVideoJob(
   jobId: string,
@@ -47,14 +43,11 @@ export async function pollVideoJob(
   videoUrl?: string
   error?: string
 }> {
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) throw new Error('Not authenticated')
-
   const res = await fetch(`${SUPABASE_URL}/functions/v1/poll-video`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${session.access_token}`,
+      'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
     },
     body: JSON.stringify({ jobId, productId }),
   })

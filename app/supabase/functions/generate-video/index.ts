@@ -1,6 +1,4 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { hmac } from 'https://deno.land/x/hmac@v2.0.1/mod.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -70,34 +68,16 @@ async function callTencentAPI(action: string, payload: Record<string, unknown>) 
   return response.json()
 }
 
-serve(async (req) => {
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    // 验证用户身份
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
-
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_ANON_KEY')!,
-      { global: { headers: { Authorization: authHeader } } }
     )
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
-    }
 
     const { productId, prompt, style, ratio, duration } = await req.json()
 
@@ -119,13 +99,13 @@ serve(async (req) => {
     const stylePrefix = stylePrompts[style] || ''
     const fullPrompt = `${stylePrefix}高质量产品广告视频，${prompt}，专业摄影，4K画质，流畅动态，商业广告风格`
 
-    // 根据比例设置分辨率
+    // 根据比例设置分辨率（混元视频支持 720p / 1080p）
     const resolutionMap: Record<string, string> = {
-      '16:9': '1280:720',
-      '9:16': '720:1280',
-      '1:1': '960:960',
+      '16:9': '1080p',
+      '9:16': '1080p',
+      '1:1': '1080p',
     }
-    const resolution = resolutionMap[ratio] || '1280:720'
+    const resolution = resolutionMap[ratio] || '1080p'
 
     // 调用混元视频 API
     const result = await callTencentAPI('SubmitHunyuanToVideoJob', {
