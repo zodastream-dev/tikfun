@@ -1,3 +1,15 @@
+// TikFun精选 - 分类数据
+const CATEGORIES = [
+  { id: 'all',    icon: '🎬', label: '全部' },
+  { id: '动物搞笑', icon: '🐾', label: '动物搞笑' },
+  { id: '家庭搞笑', icon: '👨‍👩‍👧', label: '家庭搞笑' },
+  { id: '日常搞笑', icon: '😂', label: '日常搞笑' },
+  { id: '儿童搞笑', icon: '👶', label: '儿童搞笑' },
+  { id: '职场搞笑', icon: '💼', label: '职场搞笑' },
+  { id: '校园搞笑', icon: '🎒', label: '校园搞笑' },
+  { id: '文化搞笑', icon: '🌍', label: '文化搞笑' },
+];
+
 // TikFun精选 - 精选TikTok热门搞笑视频数据
 const VIDEOS_DATA = [
   {
