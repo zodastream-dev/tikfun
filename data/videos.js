@@ -1,12 +1,12 @@
 // TikFun精选 - 分类数据
 const CATEGORIES = [
-  { id: 'all',    icon: '\uD83C\uDFAC', label: '全部' },
-  { id: '沉默喜剧', icon: '\uD83E\uDD2B', label: '沉默喜剧' },
-  { id: '魔术特效', icon: '\u2728', label: '魔术特效' },
-  { id: '角色扮演', icon: '\uD83C\uDFAD', label: '角色扮演' },
-  { id: '家庭搞笑', icon: '\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67', label: '家庭搞笑' },
-  { id: '脱口秀', icon: '\uD83C\uDFA4', label: '脱口秀' },
-  { id: '日常搞笑', icon: '\uD83D\uDE02', label: '日常搞笑' },
+  { id: 'all',    icon: '🎬', name: '全部',   count: 20 },
+  { id: '沉默喜剧', icon: '🤫', name: '沉默喜剧', count: 3 },
+  { id: '魔术特效', icon: '✨', name: '魔术特效', count: 2 },
+  { id: '角色扮演', icon: '🎭', name: '角色扮演', count: 3 },
+  { id: '家庭搞笑', icon: '👨‍👩‍👧', name: '家庭搞笑', count: 3 },
+  { id: '脱口秀',  icon: '🎤', name: '脱口秀',   count: 4 },
+  { id: '日常搞笑', icon: '😂', name: '日常搞笑', count: 5 },
 ];
 
 // TikFun精选 - 精选TikTok热门搞笑创作者（真实账号，来源：CelebFlare/NeoReach 2025）
