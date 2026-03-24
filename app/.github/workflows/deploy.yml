@@ -42,7 +42,7 @@ jobs:
       - name: Assemble site
         run: |
           mkdir -p _site
-          # 复制现有主站文件
+          # 复制现有主站文件（index.html、CNAME、data 等）
           cp index.html _site/
           cp CNAME _site/
           [ -d data ] && cp -r data _site/data || true
