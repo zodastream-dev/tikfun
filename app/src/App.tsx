@@ -6,9 +6,9 @@ import { GalleryPage } from './pages/GalleryPage'
 import { AuthPage } from './pages/AuthPage'
 import { VideoPreviewModal } from './components/VideoPreviewModal'
 import type { ProductItem, TabId } from './types'
-import { simulateProgress } from './utils'
 import { supabase } from './lib/supabase'
 import { fetchProducts, insertProduct, updateProductStatus, deleteProduct } from './lib/db'
+import { startRealVideoGeneration } from './lib/api'
 import type { User } from '@supabase/supabase-js'
 
 export default function App() {
@@ -59,39 +59,47 @@ export default function App() {
     setProducts(prev => [...saved, ...prev])
   }, [user])
 
-  // ─── Start generation ─────────────────────────────────────────
-  const handleStartGeneration = useCallback((ids: string[]) => {
-    ids.forEach(id => {
-      setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'processing', progress: 0 } : p))
+  // ─── 通用：启动生成（接入真实 API）────────────────────────────
+  const startGenForItem = useCallback((item: ProductItem) => {
+    // 用产品名称 + 描述作为 Prompt（文件上传的情况用文件名）
+    const prompt = item.description
+      ? item.description
+      : `${item.name}，产品功能展示，电商广告视频`
 
-      const item = { id } as ProductItem
-      simulateProgress(item, async (itemId, status, progress, videoUrl) => {
+    startRealVideoGeneration(
+      item,
+      prompt,
+      async (itemId, status, progress, videoUrl, errorMsg) => {
         setProducts(prev => prev.map(p =>
           p.id === itemId
-            ? { ...p, status, progress, ...(videoUrl ? { videoUrl } : {}), updatedAt: new Date() }
+            ? { ...p, status, progress, ...(videoUrl ? { videoUrl } : {}), ...(errorMsg ? { errorMsg } : {}), updatedAt: new Date() }
             : p
         ))
         try {
-          await updateProductStatus(itemId, status, progress, videoUrl)
+          await updateProductStatus(itemId, status, progress, videoUrl, errorMsg)
         } catch { /* non-blocking */ }
-      })
+      }
+    )
+  }, [])
+
+  // ─── Start generation ─────────────────────────────────────────
+  const handleStartGeneration = useCallback((ids: string[], itemsMap?: ProductItem[]) => {
+    const sourceList = itemsMap ?? products
+    ids.forEach(id => {
+      const item = sourceList.find(p => p.id === id)
+      if (!item) return
+      setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'processing', progress: 0 } : p))
+      startGenForItem(item)
     })
     setActiveTab('tasks')
-  }, [])
+  }, [products, startGenForItem])
 
   const handleRetry = useCallback((id: string) => {
     const item = products.find(p => p.id === id)
     if (!item) return
     setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'processing', progress: 0, errorMsg: undefined } : p))
-    simulateProgress(item, async (itemId, status, progress, videoUrl) => {
-      setProducts(prev => prev.map(p =>
-        p.id === itemId
-          ? { ...p, status, progress, ...(videoUrl ? { videoUrl } : {}), updatedAt: new Date() }
-          : p
-      ))
-      try { await updateProductStatus(itemId, status, progress, videoUrl) } catch { /* */ }
-    })
-  }, [products])
+    startGenForItem(item)
+  }, [products, startGenForItem])
 
   const handleRemove = useCallback(async (id: string) => {
     setProducts(prev => prev.filter(p => p.id !== id))
@@ -182,7 +190,7 @@ export default function App() {
       {/* Main Content */}
       <main className="flex-1 overflow-y-auto">
         {activeTab === 'upload' && (
-          <UploadPage onAddProducts={handleAddProducts} onStartGeneration={handleStartGeneration} />
+          <UploadPage onAddProducts={handleAddProducts} onStartGeneration={(ids, items) => handleStartGeneration(ids, items)} />
         )}
         {activeTab === 'tasks' && (
           <TasksPage items={products} onRetry={handleRetry} onRemove={handleRemove} onPreview={setPreviewItem} />

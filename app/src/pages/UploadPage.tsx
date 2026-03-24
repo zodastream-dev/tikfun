@@ -5,7 +5,7 @@ import { createProductItem, getDefaultConfig, formatFileSize, getStyleLabel } fr
 
 interface UploadPageProps {
   onAddProducts: (items: ProductItem[]) => void
-  onStartGeneration: (ids: string[]) => void
+  onStartGeneration: (ids: string[], items: ProductItem[]) => void
 }
 
 const STYLE_OPTIONS: { value: VideoStyle; label: string; desc: string; color: string }[] = [
@@ -104,7 +104,7 @@ export function UploadPage({ onAddProducts, onStartGeneration }: UploadPageProps
   const handleStartAll = () => {
     if (pendingItems.length === 0) return
     onAddProducts(pendingItems)
-    onStartGeneration(pendingItems.map(i => i.id))
+    onStartGeneration(pendingItems.map(i => i.id), pendingItems)
     setPendingItems([])
   }
 
