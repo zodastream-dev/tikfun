@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TikFun精选 — 部署指南</title>
+<style>
+  :root {
+    --bg: #0f0f0f;
+    --card: #1a1a1a;
+    --border: #2a2a2a;
+    --primary: #fe2c55;
+    --text: #f0f0f0;
+    --muted: #888;
+    --green: #25d366;
+    --blue: #4a9eff;
+    --yellow: #f5b800;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; line-height: 1.6; }
+  .header { background: linear-gradient(135deg, #fe2c55 0%, #ff6b35 100%); padding: 48px 24px; text-align: center; }
+  .header h1 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; }
+  .header p { font-size: 1.1rem; opacity: 0.9; }
+  .badge { display: inline-block; background: rgba(255,255,255,0.25); border-radius: 20px; padding: 4px 14px; font-size: 0.85rem; font-weight: 600; margin-top: 12px; }
+  .container { max-width: 900px; margin: 0 auto; padding: 40px 24px; }
+  .section { margin-bottom: 40px; }
+  .section h2 { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; }
+  .section h2 .icon { font-size: 1.5rem; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 16px; }
+  .card h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+  .card p, .card li { color: #ccc; font-size: 0.95rem; margin-bottom: 6px; }
+  .card ul { padding-left: 20px; }
+  .recommended { border-color: var(--primary); position: relative; }
+  .recommended::before { content: "⭐ 推荐"; position: absolute; top: -12px; left: 20px; background: var(--primary); color: white; font-size: 0.75rem; font-weight: 700; padding: 2px 12px; border-radius: 20px; }
+  .step { display: flex; gap: 16px; margin-bottom: 20px; }
+  .step-num { width: 36px; height: 36px; background: var(--primary); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1rem; flex-shrink: 0; }
+  .step-content h4 { font-size: 1rem; font-weight: 700; margin-bottom: 6px; }
+  .step-content p, .step-content code { color: #ccc; font-size: 0.9rem; }
+  code { background: #2a2a2a; padding: 2px 8px; border-radius: 6px; font-family: 'Consolas', monospace; color: var(--blue); }
+  pre { background: #1e1e1e; border: 1px solid var(--border); border-radius: 12px; padding: 20px; overflow-x: auto; margin: 12px 0; }
+  pre code { background: none; padding: 0; color: #a8d8a8; }
+  .dns-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+  .dns-table th { background: #252525; padding: 10px 14px; text-align: left; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; }
+  .dns-table td { padding: 10px 14px; border-top: 1px solid var(--border); font-size: 0.9rem; }
+  .dns-table td code { font-size: 0.85rem; }
+  .tag { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 600; }
+  .tag-free { background: rgba(37,211,102,0.15); color: var(--green); }
+  .tag-fast { background: rgba(74,158,255,0.15); color: var(--blue); }
+  .tag-cn { background: rgba(245,184,0,0.15); color: var(--yellow); }
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; font-size: 0.95rem; }
+  .checklist li:last-child { border-bottom: none; }
+  .check { color: var(--green); font-size: 1.2rem; }
+  .file-tree { background: #1e1e1e; border-radius: 12px; padding: 20px; font-family: monospace; font-size: 0.9rem; line-height: 1.8; }
+  .file-tree .dir { color: var(--blue); }
+  .file-tree .file { color: #a8d8a8; }
+  .file-tree .comment { color: var(--muted); }
+  .alert { background: rgba(254,44,85,0.1); border: 1px solid rgba(254,44,85,0.3); border-radius: 12px; padding: 16px 20px; margin-bottom: 16px; }
+  .alert-icon { font-size: 1.2rem; margin-right: 8px; }
+  a { color: var(--primary); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🚀 TikFun精选 — 部署指南</h1>
+  <p>将 MVP v1.0 部署到 workbuddy.yookeer.com</p>
+  <div class="badge">✅ 测试通过 · 可上线发布</div>
+</div>
+
+<div class="container">
+
+  <!-- 文件结构 -->
+  <div class="section">
+    <h2><span class="icon">📁</span>待部署文件结构</h2>
+    <div class="card">
+      <div class="file-tree">
+        <span class="dir">tikfun/</span><br>
+        &nbsp;&nbsp;├── <span class="file">index.html</span>&nbsp;&nbsp;<span class="comment">← 主页面（含全部前端逻辑）</span><br>
+        &nbsp;&nbsp;└── <span class="dir">data/</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;└── <span class="file">videos.js</span>&nbsp;&nbsp;<span class="comment">← 20个精选视频数据</span>
+      </div>
+      <p style="margin-top:14px;color:#888;font-size:0.88rem;">📦 部署包：<code>tikfun-deploy.zip</code>（约 15.5 KB）位于 <code>c:\Users\陆峻\WorkBuddy\Claw\</code></p>
+    </div>
+  </div>
+
+  <!-- 托管方案 -->
+  <div class="section">
+    <h2><span class="icon">☁️</span>推荐静态托管方案</h2>
+
+    <div class="card recommended">
+      <h3>🥇 Vercel（最推荐）<span class="tag tag-free" style="margin-left:8px">免费</span><span class="tag tag-fast" style="margin-left:6px">全球CDN</span></h3>
+      <p>支持自定义域名、HTTPS自动、全球加速，5分钟内完成部署。</p>
+    </div>
+
+    <div class="card">
+      <h3>🥈 Netlify<span class="tag tag-free" style="margin-left:8px">免费</span></h3>
+      <p>同样支持拖拽上传，自定义域名，HTTPS自动签发。</p>
+    </div>
+
+    <div class="card">
+      <h3>🥉 腾讯云 COS + CDN<span class="tag tag-cn" style="margin-left:8px">国内加速</span></h3>
+      <p>适合国内用户访问，需要域名备案（yookeer.com 建议提前确认备案状态）。</p>
+    </div>
+  </div>
+
+  <!-- Vercel 部署步骤 -->
+  <div class="section">
+    <h2><span class="icon">⚡</span>Vercel 部署步骤（推荐）</h2>
+
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <h4>访问 Vercel 并登录</h4>
+        <p>打开 <a href="https://vercel.com" target="_blank">vercel.com</a>，使用 GitHub / Google 账号登录</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <h4>创建新项目 → 选择"Browse"上传文件夹</h4>
+        <p>点击 <strong>Add New → Project</strong>，选择 <strong>Upload</strong>，将 <code>tikfun/</code> 文件夹拖入</p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <h4>部署配置（零配置即可）</h4>
+        <p>Framework Preset 选 <strong>Other</strong>，Root Directory 保持默认，直接点击 <strong>Deploy</strong></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <h4>绑定自定义域名</h4>
+        <p>部署成功后进入 <strong>Settings → Domains</strong>，添加 <code>workbuddy.yookeer.com</code></p>
+      </div>
+    </div>
+
+    <div class="step">
+      <div class="step-num">5</div>
+      <div class="step-content">
+        <h4>配置 DNS（在域名注册商处操作）</h4>
+        <p>Vercel 会给出 CNAME 目标值，在 yookeer.com 的 DNS 面板添加以下记录：</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- DNS 配置 -->
+  <div class="section">
+    <h2><span class="icon">🌐</span>DNS 配置</h2>
+    <div class="card">
+      <table class="dns-table">
+        <thead>
+          <tr>
+            <th>类型</th>
+            <th>主机记录</th>
+            <th>记录值</th>
+            <th>TTL</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>CNAME</code></td>
+            <td><code>workbuddy</code></td>
+            <td><code>cname.vercel-dns.com</code></td>
+            <td>300</td>
+          </tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px;color:#888;font-size:0.85rem;">⏱ DNS 生效时间：通常 5-30 分钟，最长 48 小时。Vercel 控制台会自动检测并签发 HTTPS 证书。</p>
+    </div>
+  </div>
+
+  <!-- 腾讯云 COS 方案 -->
+  <div class="section">
+    <h2><span class="icon">🇨🇳</span>腾讯云 COS 部署步骤（备选）</h2>
+    <div class="card">
+      <div class="step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>创建 COS Bucket</h4>
+          <p>进入 <a href="https://console.cloud.tencent.com/cos" target="_blank">腾讯云控制台</a> → 对象存储 → 创建存储桶，地域选<strong>广州</strong>或<strong>上海</strong></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>上传文件</h4>
+          <p>上传 <code>index.html</code> 和 <code>data/videos.js</code>（注意保持目录结构）</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>开启静态网站托管</h4>
+          <p>存储桶 → 基础配置 → 静态网站，开启并设置 <strong>索引文档</strong>为 <code>index.html</code></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>绑定自定义域名 + CDN</h4>
+          <p>域名管理 → 添加 <code>workbuddy.yookeer.com</code>，开启 CDN 加速，配置 HTTPS（免费 DV 证书）</p>
+        </div>
+      </div>
+    </div>
+    <div class="alert">
+      <span class="alert-icon">⚠️</span>
+      <strong>备案提醒：</strong>腾讯云国内 CDN 需要域名完成 ICP 备案。请提前确认 <code>yookeer.com</code> 的备案状态；如未备案，建议使用 Vercel 方案。
+    </div>
+  </div>
+
+  <!-- 上线检查清单 -->
+  <div class="section">
+    <h2><span class="icon">✅</span>上线前检查清单</h2>
+    <div class="card">
+      <ul class="checklist">
+        <li><span class="check">✅</span>MVP v1.0 代码开发完成</li>
+        <li><span class="check">✅</span>7个 Bug 全部修复（P0+P1+P2+P3）</li>
+        <li><span class="check">✅</span>回归测试 7/7 PASS</li>
+        <li><span class="check">✅</span>部署包 tikfun-deploy.zip 已生成</li>
+        <li><span class="check">⬜</span>选择托管平台并上传文件</li>
+        <li><span class="check">⬜</span>配置 workbuddy.yookeer.com DNS</li>
+        <li><span class="check">⬜</span>HTTPS 证书自动签发确认</li>
+        <li><span class="check">⬜</span>线上冒烟测试（打开网址、搜索、点赞）</li>
+      </ul>
+    </div>
+  </div>
+
+  <div style="text-align:center;padding:40px 0;color:#555;">
+    <div style="font-size:2rem;margin-bottom:12px;">🎉</div>
+    <div style="font-size:1.1rem;color:#888;">TikFun精选 MVP v1.0 · 准备就绪</div>
+    <div style="font-size:0.85rem;color:#555;margin-top:6px;">产品经理 · 开发工程师 · 测试工程师 协作完成</div>
+  </div>
+
+</div>
+</body>
+</html>
