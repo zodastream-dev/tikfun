@@ -1762,7 +1762,7 @@ function renderVideoCard(v) {
   const isLiked = likedVideos.includes(v.id);
   const isHot = v.views > 3000000;
   return `
-    <div class="video-card" onclick="openModal(${v.id})">
+    <div class="video-card" onclick="window.open('${v.tiktokUrl}','_blank')">
       <div class="thumb-wrap">
         <img class="thumb-img" src="${v.thumbnail}" alt="${v.title}" loading="lazy">
         <div class="play-overlay">
