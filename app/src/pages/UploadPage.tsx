@@ -4,7 +4,7 @@ import type { ProductItem, VideoConfig, VideoStyle, VideoRatio } from '../types'
 import { createProductItem, getDefaultConfig, formatFileSize, getStyleLabel } from '../utils'
 
 interface UploadPageProps {
-  onAddProducts: (items: ProductItem[]) => void
+  onAddProducts: (items: ProductItem[]) => Promise<void>
   onStartGeneration: (ids: string[], items: ProductItem[]) => void
 }
 
@@ -101,11 +101,12 @@ export function UploadPage({ onAddProducts, onStartGeneration }: UploadPageProps
     setPendingItems(prev => prev.map(item => ({ ...item, config: { ...globalConfig } })))
   }
 
-  const handleStartAll = () => {
+  const handleStartAll = async () => {
     if (pendingItems.length === 0) return
-    onAddProducts(pendingItems)
-    onStartGeneration(pendingItems.map(i => i.id), pendingItems)
-    setPendingItems([])
+    const items = [...pendingItems]
+    setPendingItems([])  // 立即清空，防止用户重复点击
+    await onAddProducts(items)  // 先保存到 DB，等待完成
+    onStartGeneration(items.map(i => i.id), items)  // 再开始生成
   }
 
   return (

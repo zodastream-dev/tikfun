@@ -75,12 +75,30 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    const { jobId, productId } = await req.json()
-    if (!jobId || !productId) {
-      return new Response(JSON.stringify({ error: 'Missing jobId or productId' }), {
+    const { jobId: rawJobId, productId } = await req.json()
+    if (!productId) {
+      return new Response(JSON.stringify({ error: 'Missing productId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+
+    // 优先用传入的 jobId，否则从数据库读取
+    let jobId = rawJobId
+    if (!jobId) {
+      const { data } = await supabase
+        .from('products')
+        .select('job_id')
+        .eq('id', productId)
+        .single()
+      jobId = data?.job_id
+    }
+
+    if (!jobId) {
+      return new Response(JSON.stringify({ error: 'No jobId found for this product' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
@@ -104,20 +122,24 @@ Deno.serve(async (req) => {
     }
 
     const job = result.Response
-    const jobStatus = job?.Status  // 'submitted' | 'running' | 'succeed' | 'failed'
+    // 腾讯云混元生视频实际返回的 Status 枚举值：WAIT / RUN / FAIL / DONE（全大写）
+    const jobStatus = job?.Status
 
-    // 状态映射
+    console.log('Job status:', jobStatus, 'Full response:', JSON.stringify(job))
+
+    // 状态映射（以官方文档为准：WAIT/RUN/FAIL/DONE）
     const progressMap: Record<string, number> = {
-      submitted: 15,
-      running: 60,
-      succeed: 100,
-      failed: 0,
+      WAIT: 20,
+      RUN: 60,
+      DONE: 100,
+      FAIL: 0,
     }
 
     const progress = progressMap[jobStatus] ?? 30
 
-    if (jobStatus === 'succeed') {
-      const videoUrl = job?.ResultVideo || job?.VideoUrl || job?.Url
+    if (jobStatus === 'DONE') {
+      // 官方文档：视频URL字段名为 ResultVideoUrl
+      const videoUrl = job?.ResultVideoUrl || job?.ResultVideo || job?.VideoUrl || job?.Url
       await supabase
         .from('products')
         .update({ video_status: 'completed', video_progress: 100, video_url: videoUrl })
@@ -130,8 +152,8 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    if (jobStatus === 'failed') {
-      const errMsg = job?.ErrMsg || '视频生成失败'
+    if (jobStatus === 'FAIL') {
+      const errMsg = job?.ErrorMessage || job?.ErrMsg || '视频生成失败'
       await supabase
         .from('products')
         .update({ video_status: 'error', error_msg: errMsg })
@@ -143,7 +165,7 @@ Deno.serve(async (req) => {
       }), { headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
-    // 还在处理中
+    // WAIT 或 RUN：还在处理中
     await supabase
       .from('products')
       .update({ video_progress: progress })

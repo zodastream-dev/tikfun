@@ -3,6 +3,9 @@ import type { ProductItem } from '../types'
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
+// 防止同一 productId 被重复提交任务（React StrictMode / 重渲染导致的多次调用）
+const activeJobs = new Set<string>()
+
 /**
  * 调用 Edge Function 提交混元视频生成任务
  * 返回 jobId，供后续轮询使用
@@ -67,6 +70,13 @@ export function startRealVideoGeneration(
   prompt: string,
   onUpdate: (id: string, status: 'processing' | 'completed' | 'error', progress: number, videoUrl?: string, errorMsg?: string) => void
 ): void {
+  // 防重：如果这个 productId 已经在处理中，直接忽略（防止 React StrictMode 双重调用）
+  if (activeJobs.has(item.id)) {
+    console.warn('[startRealVideoGeneration] 已有进行中的任务，跳过重复提交:', item.id)
+    return
+  }
+  activeJobs.add(item.id)
+
   // 立即设为处理中
   onUpdate(item.id, 'processing', 5)
 
@@ -74,35 +84,49 @@ export function startRealVideoGeneration(
     .then(({ jobId }) => {
       onUpdate(item.id, 'processing', 15)
 
-      // 开始轮询，每 8 秒一次
+      let consecutiveErrors = 0
+      const MAX_CONSECUTIVE_ERRORS = 5
+
+      // 开始轮询，每 10 秒一次（混元视频生成需要几分钟，不必太频繁）
       const interval = setInterval(async () => {
         try {
           const result = await pollVideoJob(jobId, item.id)
+          consecutiveErrors = 0  // 成功就重置错误计数
 
           if (result.status === 'completed') {
             clearInterval(interval)
+            activeJobs.delete(item.id)
             onUpdate(item.id, 'completed', 100, result.videoUrl)
           } else if (result.status === 'error') {
             clearInterval(interval)
+            activeJobs.delete(item.id)
             onUpdate(item.id, 'error', 0, undefined, result.error || '生成失败')
           } else {
             // 还在处理中，更新进度
             onUpdate(item.id, 'processing', result.progress || 30)
           }
         } catch (err) {
-          console.error('Poll error:', err)
-          // 轮询出错不立即失败，继续重试
+          consecutiveErrors++
+          console.error(`Poll error (${consecutiveErrors}/${MAX_CONSECUTIVE_ERRORS}):`, err)
+          // 连续失败 5 次才认为真的出错
+          if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+            clearInterval(interval)
+            activeJobs.delete(item.id)
+            onUpdate(item.id, 'error', 0, undefined, '轮询失败，请重试')
+          }
         }
-      }, 8000)
+      }, 10000)
 
-      // 最长等待 20 分钟，超时认为失败
+      // 最长等待 30 分钟，超时认为失败
       setTimeout(() => {
         clearInterval(interval)
+        activeJobs.delete(item.id)
         onUpdate(item.id, 'error', 0, undefined, '生成超时，请重试')
-      }, 20 * 60 * 1000)
+      }, 30 * 60 * 1000)
     })
     .catch((err) => {
       console.error('Submit job error:', err)
+      activeJobs.delete(item.id)
       onUpdate(item.id, 'error', 0, undefined, err.message || '提交任务失败')
     })
 }

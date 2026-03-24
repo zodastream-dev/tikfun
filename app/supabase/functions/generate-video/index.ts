@@ -76,7 +76,7 @@ Deno.serve(async (req) => {
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
     const { productId, prompt, style, ratio, duration } = await req.json()
@@ -137,15 +137,14 @@ Deno.serve(async (req) => {
       })
     }
 
-    // 将 jobId 存入数据库（存在 error_msg 字段临时使用，或新增字段）
+    // 将 jobId 存入数据库
     await supabase
       .from('products')
       .update({
         video_status: 'processing',
         video_progress: 10,
         error_msg: null,
-        // 用 file_path 临时存储 jobId（如果你不想改 schema 的话）
-        // 更好的方式是新增 job_id 列，但先这样
+        job_id: jobId,
       })
       .eq('id', productId)
 
