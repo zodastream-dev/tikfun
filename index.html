@@ -1437,18 +1437,18 @@
 // ===== Supabase 配置 =====
 const SUPABASE_URL = 'https://godogsxnkktxdrmnichb.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvZG9nc3hua2t0eGRybW5pY2hiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQzMTc5OTYsImV4cCI6MjA4OTg5Mzk5Nn0.Y93aXjcp5oSdiZ7HWouZENv6-6JhUZEraSLfOb6Jx2E';
-let supabase = null;
+let _supabase = null;
 let currentUser = null;
 
 if (SUPABASE_URL && SUPABASE_ANON_KEY) {
-  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  _supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   // 监听 GitHub OAuth 登录状态
-  supabase.auth.onAuthStateChange((event, session) => {
+  _supabase.auth.onAuthStateChange((event, session) => {
     currentUser = session?.user || null;
     updateAuthUI();
     if (currentUser) loadCloudLikes();
   });
-  supabase.auth.getSession().then(({ data: { session } }) => {
+  _supabase.auth.getSession().then(({ data: { session } }) => {
     currentUser = session?.user || null;
     updateAuthUI();
     if (currentUser) loadCloudLikes();
@@ -1456,16 +1456,16 @@ if (SUPABASE_URL && SUPABASE_ANON_KEY) {
 }
 
 async function loginWithGithub() {
-  if (!supabase) { showToast('Supabase 未配置', '⚠️'); return; }
-  await supabase.auth.signInWithOAuth({
+  if (!_supabase) { showToast('Supabase 未配置', '⚠️'); return; }
+  await _supabase.auth.signInWithOAuth({
     provider: 'github',
     options: { redirectTo: window.location.href }
   });
 }
 
 async function logout() {
-  if (!supabase) return;
-  await supabase.auth.signOut();
+  if (!_supabase) return;
+  await _supabase.auth.signOut();
   currentUser = null;
   updateAuthUI();
   showToast('已退出登录');
@@ -1489,8 +1489,8 @@ function updateAuthUI() {
 }
 
 async function loadCloudLikes() {
-  if (!supabase || !currentUser) return;
-  const { data } = await supabase
+  if (!_supabase || !currentUser) return;
+  const { data } = await _supabase
     .from('likes')
     .select('video_id')
     .eq('user_id', currentUser.id);
@@ -1502,11 +1502,11 @@ async function loadCloudLikes() {
 }
 
 async function syncLikeToCloud(videoId, isLiked) {
-  if (!supabase || !currentUser) return;
+  if (!_supabase || !currentUser) return;
   if (isLiked) {
-    await supabase.from('likes').upsert({ user_id: currentUser.id, video_id: videoId });
+    await _supabase.from('likes').upsert({ user_id: currentUser.id, video_id: videoId });
   } else {
-    await supabase.from('likes').delete().eq('user_id', currentUser.id).eq('video_id', videoId);
+    await _supabase.from('likes').delete().eq('user_id', currentUser.id).eq('video_id', videoId);
   }
 }
 
