@@ -10,6 +10,26 @@
   <!-- Favicon -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>😂</text></svg>">
   
+  <!-- Google Analytics 4 -->
+  <!-- 替换 G-XXXXXXXXXX 为你的真实 GA4 Measurement ID -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-XXXXXXXXXX', {
+      // 启用增强型测量（停留时间、滚动深度、出站点击等自动跟踪）
+      send_page_view: true
+    });
+
+    // ===== 统一埋点函数 =====
+    function trackEvent(eventName, params) {
+      if (typeof gtag === 'function') {
+        gtag('event', eventName, params || {});
+      }
+    }
+  </script>
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
@@ -712,10 +732,25 @@
     }
 
     .modal-video-wrap iframe,
-    .modal-video-wrap .video-placeholder {
+    .modal-video-wrap .video-placeholder,
+    .modal-video-wrap .tiktok-embed {
       width: 100%;
       height: 100%;
       border: none;
+    }
+
+    /* TikTok 官方嵌入 blockquote 适配 */
+    .tiktok-embed {
+      max-width: 100% !important;
+      min-width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: none !important;
+      border-radius: 0 !important;
+    }
+    .tiktok-embed iframe {
+      width: 100% !important;
+      height: 100% !important;
     }
 
     .video-placeholder {
@@ -1578,6 +1613,8 @@ function filterByCategory(catId) {
   renderCategories();
   renderVideos();
   showPage('home');
+  // 埋点：分类筛选
+  trackEvent('filter_category', { category: catId });
   // 平滑滚动到内容区
   setTimeout(() => {
     document.querySelector('.content-area').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1590,6 +1627,8 @@ function setSort(sortType, btn) {
   document.querySelectorAll('.sort-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   renderVideos();
+  // 埋点：排序
+  trackEvent('sort_by', { sort_type: sortType });
 }
 
 // ===== 搜索 =====
@@ -1610,6 +1649,8 @@ function onSearchKeydown(e) {
       addToHistory(val);
       document.getElementById('searchHistory').classList.remove('visible');
       document.getElementById('searchInput').blur();
+      // 埋点：搜索
+      trackEvent('search', { search_term: val });
     }
   }
   if (e.key === 'Escape') {
@@ -1840,27 +1881,74 @@ function shareVideo() {
 }
 
 function doShare(video) {
+  // 埋点：分享事件
+  trackEvent('share', { video_id: video.id, video_title: video.title, creator: video.tiktokUser });
+
+  // 优先调用原生分享（手机端体验最好）
   if (navigator.share) {
     navigator.share({
       title: video.title,
       text: video.description,
       url: window.location.href,
     }).catch(() => {});
-  } else {
-    // 复制链接到剪贴板
-    const text = `${video.title}\n来自 TikFun精选 - workbuddy.yookeer.com`;
-    if (navigator.clipboard && window.isSecureContext) {
-      // HTTPS 环境使用现代 API
-      navigator.clipboard.writeText(text).then(() => {
-        showToast('视频链接已复制！快分享给朋友吧 📤');
-      }).catch(() => {
-        fallbackCopy(text);
-      });
-    } else {
-      // HTTP 环境降级到 execCommand
-      fallbackCopy(text);
-    }
+    return;
   }
+
+  // 桌面端：显示社交分享弹窗
+  const shareUrl = encodeURIComponent(window.location.href);
+  const shareText = encodeURIComponent(video.title + ' - 来自 TikFun精选');
+  const sharePanel = document.createElement('div');
+  sharePanel.style.cssText = `
+    position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;
+    background:rgba(0,0,0,0.7);backdrop-filter:blur(6px);
+  `;
+  sharePanel.innerHTML = `
+    <div style="background:#1e1e1e;border-radius:16px;padding:28px 32px;min-width:320px;text-align:center;box-shadow:0 8px 40px rgba(0,0,0,0.5);">
+      <div style="font-size:18px;font-weight:700;margin-bottom:20px;color:#f0f0f0;">分享给朋友 📤</div>
+      <div style="display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;">
+        <a href="https://service.weibo.com/share/share.php?url=${shareUrl}&title=${shareText}"
+           target="_blank" rel="noopener"
+           style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#f0f0f0;text-decoration:none;font-size:12px;">
+          <span style="font-size:28px;">🔴</span> 微博
+        </a>
+        <a href="https://connect.qq.com/widget/shareqq/index.html?url=${shareUrl}&title=${shareText}&source=TikFun精选"
+           target="_blank" rel="noopener"
+           style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#f0f0f0;text-decoration:none;font-size:12px;">
+          <span style="font-size:28px;">🐧</span> QQ
+        </a>
+        <button onclick="copyShareLink('${video.title}')"
+           style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#f0f0f0;background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;">
+          <span style="font-size:28px;">🔗</span> 复制链接
+        </button>
+        <button onclick="showWechatTip()"
+           style="display:flex;flex-direction:column;align-items:center;gap:6px;color:#f0f0f0;background:none;border:none;cursor:pointer;font-size:12px;font-family:inherit;">
+          <span style="font-size:28px;">💬</span> 微信
+        </button>
+      </div>
+      <button onclick="this.closest('[data-share-panel]').remove()"
+        style="padding:8px 24px;border-radius:20px;background:#333;border:1px solid #555;color:#aaa;cursor:pointer;font-size:13px;font-family:inherit;">
+        取消
+      </button>
+    </div>
+  `;
+  sharePanel.dataset.sharePanel = '1';
+  sharePanel.addEventListener('click', (e) => {
+    if (e.target === sharePanel) sharePanel.remove();
+  });
+  document.body.appendChild(sharePanel);
+}
+
+function copyShareLink(title) {
+  const text = title + '\n' + window.location.href;
+  navigator.clipboard?.writeText(text).then(() => {
+    showToast('链接已复制！快分享给朋友吧 📤');
+  }).catch(() => fallbackCopy(text));
+  document.querySelector('[data-share-panel]')?.remove();
+}
+
+function showWechatTip() {
+  showToast('请复制链接后在微信中粘贴分享 💬', '💬');
+  document.querySelector('[data-share-panel]')?.remove();
 }
 
 function fallbackCopy(text) {
@@ -1907,18 +1995,46 @@ function openModal(id) {
     </div>
   `;
 
-  // 视频区域：展示封面+跳转按钮（TikTok嵌入受CSP限制时降级展示）
-  document.getElementById('modalVideoWrap').innerHTML = `
-    <div class="video-placeholder">
-      <img class="thumb-full" src="${video.thumbnail}" alt="${video.title}">
-      <div class="play-overlay-btn">
-        <a class="tiktok-open-btn" href="${video.tiktokUrl}" target="_blank" rel="noopener">
-          <span>▶</span> 在 TikTok 上观看
-        </a>
-        <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:4px;">来自 ${video.tiktokUser}</div>
+  // 视频区域：有真实 videoId → TikTok 官方嵌入播放器；无 ID → 封面+跳转按钮
+  const wrap = document.getElementById('modalVideoWrap');
+  if (video.videoId) {
+    // TikTok 官方嵌入（无需 API key）
+    wrap.innerHTML = `
+      <blockquote class="tiktok-embed"
+        cite="${video.tiktokUrl}"
+        data-video-id="${video.videoId}"
+        style="max-width:100%;min-width:100%;border:none;margin:0;padding:0;">
+        <section></section>
+      </blockquote>
+    `;
+    // 动态加载 embed.js（避免重复加载）
+    if (!document.getElementById('tiktok-embed-js')) {
+      const s = document.createElement('script');
+      s.id = 'tiktok-embed-js';
+      s.async = true;
+      s.src = 'https://www.tiktok.com/embed.js';
+      document.body.appendChild(s);
+    } else {
+      // 已加载过则手动触发重新渲染
+      if (window.tiktok) window.tiktok.reload();
+    }
+    // 埋点：视频播放
+    trackEvent('play_video', { video_id: video.id, video_title: video.title, creator: video.tiktokUser });
+  } else {
+    // 降级：封面 + 跳转按钮（无真实 videoId 时）
+    wrap.innerHTML = `
+      <div class="video-placeholder">
+        <img class="thumb-full" src="${video.thumbnail}" alt="${video.title}">
+        <div class="play-overlay-btn">
+          <a class="tiktok-open-btn" href="${video.tiktokUrl}" target="_blank" rel="noopener"
+             onclick="trackEvent('play_video',{video_id:${video.id},creator:'${video.tiktokUser}',mode:'external'})">
+            <span>▶</span> 在 TikTok 上观看
+          </a>
+          <div style="font-size:12px;color:rgba(255,255,255,0.6);margin-top:4px;">来自 ${video.tiktokUser}</div>
+        </div>
       </div>
-    </div>
-  `;
+    `;
+  }
 
   const likeBtn = document.getElementById('modalLikeBtn');
   likeBtn.innerHTML = `<span>${isLiked ? '❤️' : '🤍'}</span> <span id="modalLikeText">${isLiked ? '已点赞' : '点赞'}</span>`;
