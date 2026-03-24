@@ -1,9 +1,10 @@
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string
+// 优先用 service_role key 绕过 RLS；如无则回退 anon key
+const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_SERVICE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
 // ─── Database types ───────────────────────────────────────────────────────────
 
