@@ -66,10 +66,13 @@ export default function App() {
       ? item.description
       : `${item.name}，产品功能展示，电商广告视频`
 
+    console.log('[startGenForItem] starting for item:', item.id, 'prompt:', prompt)
+
     startRealVideoGeneration(
       item,
       prompt,
       async (itemId, status, progress, videoUrl, errorMsg) => {
+        console.log('[onUpdate]', itemId, status, progress)
         setProducts(prev => prev.map(p =>
           p.id === itemId
             ? { ...p, status, progress, ...(videoUrl ? { videoUrl } : {}), ...(errorMsg ? { errorMsg } : {}), updatedAt: new Date() }
@@ -85,8 +88,10 @@ export default function App() {
   // ─── Start generation ─────────────────────────────────────────
   const handleStartGeneration = useCallback((ids: string[], itemsMap?: ProductItem[]) => {
     const sourceList = itemsMap ?? products
+    console.log('[handleStartGeneration] ids:', ids, 'sourceList length:', sourceList.length)
     ids.forEach(id => {
       const item = sourceList.find(p => p.id === id)
+      console.log('[handleStartGeneration] id:', id, 'item found:', !!item)
       if (!item) return
       setProducts(prev => prev.map(p => p.id === id ? { ...p, status: 'processing', progress: 0 } : p))
       startGenForItem(item)
