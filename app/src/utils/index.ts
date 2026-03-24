@@ -25,7 +25,8 @@ export function formatDuration(seconds: number): string {
 }
 
 export function generateId(): string {
-  return Math.random().toString(36).slice(2) + Date.now().toString(36)
+  // 使用标准 UUID v4，兼容数据库 uuid 字段类型
+  return crypto.randomUUID()
 }
 
 export function getDefaultConfig(): VideoConfig {

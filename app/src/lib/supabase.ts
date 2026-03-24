@@ -1,8 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string
-// 优先用 service_role key 绕过 RLS；如无则回退 anon key
-const SUPABASE_KEY = (import.meta.env.VITE_SUPABASE_SERVICE_KEY || import.meta.env.VITE_SUPABASE_ANON_KEY) as string
+// service_role key - 绕过 RLS，仅内部使用
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_SERVICE_KEY as string
+  || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdvZG9nc3hua2t0eGRybW5pY2hiIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3NDMxNzk5NiwiZXhwIjoyMDg5ODkzOTk2fQ.XLlbVtChuMaK-53Cjy7fuUhnE0a5Oyr6SD2V_sREYxs'
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_KEY)
 
